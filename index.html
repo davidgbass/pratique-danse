@@ -69,6 +69,7 @@
 <div class="temps"><span id="ecoule">0:00</span> / <span id="total">0:00</span></div>
 <div class="tout"><button id="toutes">Toute la chanson</button><button id="aucune">Aucune</button></div>
 <div class="aide">Touche une ou plusieurs parties : elles jouent en boucle.</div>
+<div class="aide" style="font-size:12px;margin-top:30px">version 4</div>
 
 <audio id="audio" src="trex.m4a" preload="auto"></audio>
 
@@ -159,8 +160,23 @@
       });
       return;
     }
+    cible = t;
+    heureSaut = Date.now();
     try { audio.currentTime = t; } catch (e) {}
     ecoule.innerHTML = format(t);
+  }
+
+  // Un vieil iPad continue d'annoncer l'ancienne position pendant le saut :
+  // on ne vérifie plus rien tant que le saut n'est pas arrivé (2 s au plus)
+  var cible = null;
+  var heureSaut = 0;
+  function sautEnCours() {
+    if (cible === null) { return false; }
+    if (Math.abs(audio.currentTime - cible) < 1 || Date.now() - heureSaut > 2000) {
+      cible = null;
+      return false;
+    }
+    return true;
   }
 
   // Safari atterrit parfois un peu avant le point demandé : une demi-seconde de marge
@@ -174,7 +190,7 @@
 
   // Si la tête de lecture n'est pas dans une partie choisie, sauter à la prochaine
   function verifier() {
-    if (premiereChoisie() < 0 || audio.seeking) { return; }
+    if (premiereChoisie() < 0 || audio.seeking || sautEnCours()) { return; }
     var t = audio.currentTime;
     if (dansChoisie(t)) { return; }
     var p = partieA(t);
