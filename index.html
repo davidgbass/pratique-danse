@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="T.Rex">
+<meta name="robots" content="noindex, nofollow">
+<title>T.Rex</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; padding: 24px 20px 40px;
+    font-family: -apple-system, Helvetica, Arial, sans-serif;
+    background: #1b1530; color: #fff; text-align: center;
+    -webkit-user-select: none; user-select: none;
+  }
+  h1 { margin: 8px 0 24px; font-size: 40px; letter-spacing: 2px; }
+  .vitesse { font-size: 72px; font-weight: bold; color: #ffcf4a; line-height: 1; }
+  .sous { font-size: 16px; color: #b8b0d6; margin: 6px 0 20px; }
+  input[type=range] { width: 100%; height: 44px; margin: 0; }
+  .curseur input[type=range] { height: 60px; }
+  .presets { margin: 16px 0 28px; }
+  .presets button {
+    width: 15%; min-width: 64px; margin: 4px 0.5%; padding: 14px 0;
+    font-size: 20px; font-weight: bold; border: 0; border-radius: 12px;
+    background: #3a3060; color: #fff;
+  }
+  .presets button.actif { background: #ffcf4a; color: #1b1530; }
+  .lecture { margin: 10px 0 18px; }
+  .lecture button {
+    padding: 18px 0; font-size: 26px; font-weight: bold; border: 0; border-radius: 16px;
+    background: #3a3060; color: #fff; width: 30%; margin: 0 1%;
+  }
+  .lecture #play { background: #4ad295; color: #1b1530; width: 40%; }
+  .temps { font-size: 18px; color: #b8b0d6; margin-top: 6px; }
+  .boucle { margin-top: 26px; font-size: 18px; color: #b8b0d6; }
+  .boucle label { display: inline-block; padding: 10px 14px; background: #2a2248; border-radius: 12px; }
+  .boucle input { width: 24px; height: 24px; vertical-align: middle; margin-right: 8px; }
+</style>
+</head>
+<body>
+
+<h1>T.REX</h1>
+
+<div class="vitesse" id="affiche">100 %</div>
+<div class="sous">vitesse de la musique</div>
+
+<div class="curseur">
+  <input type="range" id="vitesse" min="50" max="100" step="5" value="100">
+</div>
+
+<div class="presets" id="presets">
+  <button data-v="50">50</button><button data-v="60">60</button><button data-v="70">70</button><button data-v="80">80</button><button data-v="90">90</button><button data-v="100" class="actif">100</button>
+</div>
+
+<div class="lecture">
+  <button id="debut">&#9198; Début</button><button id="play">&#9654; Jouer</button><button id="recul">&#8634; 5 s</button>
+</div>
+
+<input type="range" id="position" min="0" max="1000" step="1" value="0">
+<div class="temps"><span id="ecoule">0:00</span> / <span id="total">0:00</span></div>
+
+<div class="boucle"><label><input type="checkbox" id="enboucle">Recommencer à la fin</label></div>
+
+<audio id="audio" src="trex.m4a" preload="auto"></audio>
+
+<script>
+(function () {
+  var audio = document.getElementById('audio');
+  var vitesse = document.getElementById('vitesse');
+  var affiche = document.getElementById('affiche');
+  var presets = document.getElementById('presets').getElementsByTagName('button');
+  var play = document.getElementById('play');
+  var position = document.getElementById('position');
+  var ecoule = document.getElementById('ecoule');
+  var total = document.getElementById('total');
+  var enboucle = document.getElementById('enboucle');
+  var glisse = false;
+
+  // Garder la hauteur du son quand on ralentit
+  audio.preservesPitch = true;
+  audio.webkitPreservesPitch = true;
+  audio.mozPreservesPitch = true;
+
+  function format(s) {
+    if (!isFinite(s)) { return '0:00'; }
+    var m = Math.floor(s / 60);
+    var r = Math.floor(s % 60);
+    return m + ':' + (r < 10 ? '0' : '') + r;
+  }
+
+  function appliquer() {
+    var v = parseInt(vitesse.value, 10);
+    audio.playbackRate = v / 100;
+    affiche.innerHTML = v + ' %';
+    for (var i = 0; i < presets.length; i++) {
+      presets[i].className = (parseInt(presets[i].getAttribute('data-v'), 10) === v) ? 'actif' : '';
+    }
+    try { localStorage.setItem('vitesse', v); } catch (e) {}
+  }
+
+  try {
+    var memo = localStorage.getItem('vitesse');
+    if (memo) { vitesse.value = memo; }
+  } catch (e) {}
+  appliquer();
+
+  vitesse.addEventListener('input', appliquer);
+  vitesse.addEventListener('change', appliquer);
+
+  for (var i = 0; i < presets.length; i++) {
+    presets[i].addEventListener('click', function () {
+      vitesse.value = this.getAttribute('data-v');
+      appliquer();
+    });
+  }
+
+  play.addEventListener('click', function () {
+    if (audio.paused) { audio.play(); } else { audio.pause(); }
+  });
+
+  // Safari remet parfois la vitesse à 1 au démarrage : on la réapplique
+  audio.addEventListener('play', function () { appliquer(); play.innerHTML = '&#10074;&#10074; Pause'; });
+  audio.addEventListener('playing', appliquer);
+  audio.addEventListener('pause', function () { play.innerHTML = '&#9654; Jouer'; });
+
+  document.getElementById('debut').addEventListener('click', function () {
+    audio.currentTime = 0;
+  });
+  document.getElementById('recul').addEventListener('click', function () {
+    audio.currentTime = Math.max(0, audio.currentTime - 5);
+  });
+
+  audio.addEventListener('loadedmetadata', function () { total.innerHTML = format(audio.duration); });
+  audio.addEventListener('timeupdate', function () {
+    ecoule.innerHTML = format(audio.currentTime);
+    if (!glisse && audio.duration) {
+      position.value = Math.round(audio.currentTime / audio.duration * 1000);
+    }
+  });
+
+  position.addEventListener('touchstart', function () { glisse = true; });
+  position.addEventListener('mousedown', function () { glisse = true; });
+  position.addEventListener('input', function () {
+    glisse = true;
+    if (audio.duration) { ecoule.innerHTML = format(position.value / 1000 * audio.duration); }
+  });
+  position.addEventListener('change', function () {
+    if (audio.duration) { audio.currentTime = position.value / 1000 * audio.duration; }
+    glisse = false;
+  });
+
+  audio.addEventListener('ended', function () {
+    if (enboucle.checked) {
+      audio.currentTime = 0;
+      audio.play();
+    }
+  });
+})();
+</script>
+</body>
+</html>
