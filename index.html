@@ -151,16 +151,33 @@
   }
 
   function allerA(t) {
-    audio.currentTime = t;
+    // Un vieil iPad refuse le saut tant que la piste n'est pas chargée : on attend
+    if (audio.readyState < 1) {
+      audio.addEventListener('loadedmetadata', function f() {
+        audio.removeEventListener('loadedmetadata', f);
+        allerA(t);
+      });
+      return;
+    }
+    try { audio.currentTime = t; } catch (e) {}
     ecoule.innerHTML = format(t);
+  }
+
+  // Safari atterrit parfois un peu avant le point demandé : une demi-seconde de marge
+  var MARGE = 0.5;
+  function dansChoisie(t) {
+    for (var i = 0; i < SECTIONS.length; i++) {
+      if (choisi[i] && t >= SECTIONS[i].debut - MARGE && t < SECTIONS[i].fin) { return true; }
+    }
+    return false;
   }
 
   // Si la tête de lecture n'est pas dans une partie choisie, sauter à la prochaine
   function verifier() {
     if (premiereChoisie() < 0 || audio.seeking) { return; }
     var t = audio.currentTime;
+    if (dansChoisie(t)) { return; }
     var p = partieA(t);
-    if (p >= 0 && choisi[p]) { return; }
     var depart = (p < 0) ? (t < SECTIONS[0].debut ? 0 : SECTIONS.length) : p + 1;
     for (var k = 0; k < SECTIONS.length; k++) {
       var j = (depart + k) % SECTIONS.length;
@@ -171,8 +188,7 @@
   function basculer(i) {
     choisi[i] = !choisi[i];
     dessiner();
-    var p = partieA(audio.currentTime);
-    if (premiereChoisie() >= 0 && !(p >= 0 && choisi[p])) {
+    if (premiereChoisie() >= 0 && !dansChoisie(audio.currentTime)) {
       allerA(choisi[i] ? SECTIONS[i].debut : SECTIONS[premiereChoisie()].debut);
     }
   }
