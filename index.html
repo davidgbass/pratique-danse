@@ -16,66 +16,85 @@
     -webkit-user-select: none; user-select: none;
   }
   h1 { margin: 8px 0 24px; font-size: 40px; letter-spacing: 2px; }
-  .vitesse { font-size: 72px; font-weight: bold; color: #ffcf4a; line-height: 1; }
-  .sous { font-size: 16px; color: #b8b0d6; margin: 6px 0 20px; }
-  input[type=range] { width: 100%; height: 44px; margin: 0; }
-  .curseur input[type=range] { height: 60px; }
-  .presets { margin: 16px 0 28px; }
+  h2 { margin: 0 0 10px; font-size: 18px; font-weight: normal; color: #b8b0d6; }
+  .presets { margin: 0 0 30px; }
   .presets button {
-    width: 15%; min-width: 64px; margin: 4px 0.5%; padding: 14px 0;
-    font-size: 20px; font-weight: bold; border: 0; border-radius: 12px;
+    width: 15%; min-width: 64px; margin: 4px 0.5%; padding: 18px 0;
+    font-size: 22px; font-weight: bold; border: 0; border-radius: 12px;
     background: #3a3060; color: #fff;
   }
   .presets button.actif { background: #ffcf4a; color: #1b1530; }
-  .lecture { margin: 10px 0 18px; }
+  .lecture { margin: 0 0 30px; }
   .lecture button {
     padding: 18px 0; font-size: 26px; font-weight: bold; border: 0; border-radius: 16px;
-    background: #3a3060; color: #fff; width: 30%; margin: 0 1%;
+    background: #3a3060; color: #fff; width: 35%; margin: 0 1%;
   }
-  .lecture #play { background: #4ad295; color: #1b1530; width: 40%; }
+  .lecture #play { background: #4ad295; color: #1b1530; width: 45%; }
+  .sections { position: relative; height: 70px; margin: 0 0 8px; }
+  .sections button {
+    position: absolute; top: 0; height: 70px; padding: 0;
+    border: 0; border-left: 3px solid #1b1530; border-radius: 0;
+    background: #3a3060; color: #fff; font-size: 22px; font-weight: bold;
+  }
+  .sections button span { display: block; font-size: 12px; font-weight: normal; color: #b8b0d6; }
+  .sections button.choisi { background: #ff7a59; }
+  .sections button.choisi span { color: #fff; }
+  .tete { position: absolute; top: -6px; width: 4px; height: 82px; margin-left: -2px; background: #ffcf4a; pointer-events: none; }
+  input[type=range] { width: 100%; height: 44px; margin: 0; }
   .temps { font-size: 18px; color: #b8b0d6; margin-top: 6px; }
-  .boucle { margin-top: 26px; font-size: 18px; color: #b8b0d6; }
-  .boucle label { display: inline-block; padding: 10px 14px; background: #2a2248; border-radius: 12px; }
-  .boucle input { width: 24px; height: 24px; vertical-align: middle; margin-right: 8px; }
+  .aide { font-size: 15px; color: #8a82a8; margin-top: 18px; }
+  .tout { margin-top: 14px; }
+  .tout button {
+    padding: 12px 18px; margin: 0 4px; font-size: 17px; border: 0; border-radius: 12px;
+    background: #2a2248; color: #fff;
+  }
 </style>
 </head>
 <body>
 
 <h1>T.REX</h1>
 
-<div class="vitesse" id="affiche">100 %</div>
-<div class="sous">vitesse de la musique</div>
-
-<div class="curseur">
-  <input type="range" id="vitesse" min="50" max="100" step="5" value="100">
-</div>
-
+<h2>Vitesse</h2>
 <div class="presets" id="presets">
-  <button data-v="50">50</button><button data-v="60">60</button><button data-v="70">70</button><button data-v="80">80</button><button data-v="90">90</button><button data-v="100" class="actif">100</button>
+  <button data-v="50">50 %</button><button data-v="60">60 %</button><button data-v="70">70 %</button><button data-v="80">80 %</button><button data-v="90">90 %</button><button data-v="100">100 %</button>
 </div>
 
 <div class="lecture">
-  <button id="debut">&#9198; Début</button><button id="play">&#9654; Jouer</button><button id="recul">&#8634; 5 s</button>
+  <button id="debut">&#9198; Début</button><button id="play">&#9654; Jouer</button>
 </div>
 
+<h2>Parties à répéter</h2>
+<div class="sections" id="sections"><div class="tete" id="tete"></div></div>
 <input type="range" id="position" min="0" max="1000" step="1" value="0">
 <div class="temps"><span id="ecoule">0:00</span> / <span id="total">0:00</span></div>
-
-<div class="boucle"><label><input type="checkbox" id="enboucle">Recommencer à la fin</label></div>
+<div class="tout"><button id="toutes">Toute la chanson</button><button id="aucune">Aucune</button></div>
+<div class="aide">Touche une ou plusieurs parties : elles jouent en boucle.</div>
 
 <audio id="audio" src="trex.m4a" preload="auto"></audio>
 
 <script>
 (function () {
+  // Début et fin de chaque partie, en secondes
+  var SECTIONS = [
+    { debut: 0,    fin: 34.6 },
+    { debut: 34.6, fin: 44.3 },
+    { debut: 44.3, fin: 58.5 },
+    { debut: 58.5, fin: 81.9 },
+    { debut: 81.9, fin: 99.6 }
+  ];
+  var FIN = SECTIONS[SECTIONS.length - 1].fin;
+
   var audio = document.getElementById('audio');
-  var vitesse = document.getElementById('vitesse');
-  var affiche = document.getElementById('affiche');
   var presets = document.getElementById('presets').getElementsByTagName('button');
   var play = document.getElementById('play');
   var position = document.getElementById('position');
   var ecoule = document.getElementById('ecoule');
   var total = document.getElementById('total');
-  var enboucle = document.getElementById('enboucle');
+  var bande = document.getElementById('sections');
+  var tete = document.getElementById('tete');
+  var vitesse = 100;
+  var choisi = [];
+  var boutons = [];
   var glisse = false;
 
   // Garder la hauteur du son quand on ralentit
@@ -90,53 +109,125 @@
     return m + ':' + (r < 10 ? '0' : '') + r;
   }
 
+  // Vitesse
   function appliquer() {
-    var v = parseInt(vitesse.value, 10);
-    audio.playbackRate = v / 100;
-    affiche.innerHTML = v + ' %';
+    audio.playbackRate = vitesse / 100;
     for (var i = 0; i < presets.length; i++) {
-      presets[i].className = (parseInt(presets[i].getAttribute('data-v'), 10) === v) ? 'actif' : '';
+      presets[i].className = (parseInt(presets[i].getAttribute('data-v'), 10) === vitesse) ? 'actif' : '';
     }
-    try { localStorage.setItem('vitesse', v); } catch (e) {}
+    try { localStorage.setItem('vitesse', vitesse); } catch (e) {}
   }
 
   try {
-    var memo = localStorage.getItem('vitesse');
-    if (memo) { vitesse.value = memo; }
+    var memo = parseInt(localStorage.getItem('vitesse'), 10);
+    if (memo >= 50 && memo <= 100) { vitesse = memo; }
   } catch (e) {}
   appliquer();
 
-  vitesse.addEventListener('input', appliquer);
-  vitesse.addEventListener('change', appliquer);
-
   for (var i = 0; i < presets.length; i++) {
     presets[i].addEventListener('click', function () {
-      vitesse.value = this.getAttribute('data-v');
+      vitesse = parseInt(this.getAttribute('data-v'), 10);
       appliquer();
     });
   }
 
-  play.addEventListener('click', function () {
-    if (audio.paused) { audio.play(); } else { audio.pause(); }
+  // Parties
+  function premiereChoisie() {
+    for (var i = 0; i < SECTIONS.length; i++) { if (choisi[i]) { return i; } }
+    return -1;
+  }
+
+  function partieA(t) {
+    for (var i = 0; i < SECTIONS.length; i++) {
+      if (t >= SECTIONS[i].debut && t < SECTIONS[i].fin) { return i; }
+    }
+    return -1;
+  }
+
+  function dessiner() {
+    for (var i = 0; i < boutons.length; i++) {
+      boutons[i].className = choisi[i] ? 'choisi' : '';
+    }
+  }
+
+  function allerA(t) {
+    audio.currentTime = t;
+    ecoule.innerHTML = format(t);
+  }
+
+  // Si la tête de lecture n'est pas dans une partie choisie, sauter à la prochaine
+  function verifier() {
+    if (premiereChoisie() < 0 || audio.seeking) { return; }
+    var t = audio.currentTime;
+    var p = partieA(t);
+    if (p >= 0 && choisi[p]) { return; }
+    var depart = (p < 0) ? (t < SECTIONS[0].debut ? 0 : SECTIONS.length) : p + 1;
+    for (var k = 0; k < SECTIONS.length; k++) {
+      var j = (depart + k) % SECTIONS.length;
+      if (choisi[j]) { allerA(SECTIONS[j].debut); return; }
+    }
+  }
+
+  function basculer(i) {
+    choisi[i] = !choisi[i];
+    dessiner();
+    var p = partieA(audio.currentTime);
+    if (premiereChoisie() >= 0 && !(p >= 0 && choisi[p])) {
+      allerA(choisi[i] ? SECTIONS[i].debut : SECTIONS[premiereChoisie()].debut);
+    }
+  }
+
+  for (var s = 0; s < SECTIONS.length; s++) {
+    choisi.push(false);
+    var b = document.createElement('button');
+    b.style.left = (SECTIONS[s].debut / FIN * 100) + '%';
+    b.style.width = ((SECTIONS[s].fin - SECTIONS[s].debut) / FIN * 100) + '%';
+    b.innerHTML = (s + 1) + '<span>' + format(SECTIONS[s].debut) + '</span>';
+    b.setAttribute('data-i', s);
+    b.addEventListener('click', function () { basculer(parseInt(this.getAttribute('data-i'), 10)); });
+    bande.insertBefore(b, tete);
+    boutons.push(b);
+  }
+
+  document.getElementById('toutes').addEventListener('click', function () {
+    for (var i = 0; i < choisi.length; i++) { choisi[i] = true; }
+    dessiner();
+    verifier();
+  });
+  document.getElementById('aucune').addEventListener('click', function () {
+    for (var i = 0; i < choisi.length; i++) { choisi[i] = false; }
+    dessiner();
   });
 
+  // Lecture
+  play.addEventListener('click', function () {
+    if (audio.paused) { verifier(); audio.play(); } else { audio.pause(); }
+  });
+
+  document.getElementById('debut').addEventListener('click', function () {
+    var p = premiereChoisie();
+    allerA(p >= 0 ? SECTIONS[p].debut : 0);
+  });
+
+  // Une boucle serrée pendant la lecture, pour ne pas déborder sur la partie suivante
+  var raf = window.requestAnimationFrame || window.webkitRequestAnimationFrame || function (f) { return setTimeout(f, 50); };
+  function tic() {
+    verifier();
+    if (!audio.paused) { raf(tic); }
+  }
+
   // Safari remet parfois la vitesse à 1 au démarrage : on la réapplique
-  audio.addEventListener('play', function () { appliquer(); play.innerHTML = '&#10074;&#10074; Pause'; });
+  audio.addEventListener('play', function () { appliquer(); play.innerHTML = '&#10074;&#10074; Pause'; raf(tic); });
   audio.addEventListener('playing', appliquer);
   audio.addEventListener('pause', function () { play.innerHTML = '&#9654; Jouer'; });
 
-  document.getElementById('debut').addEventListener('click', function () {
-    audio.currentTime = 0;
-  });
-  document.getElementById('recul').addEventListener('click', function () {
-    audio.currentTime = Math.max(0, audio.currentTime - 5);
-  });
-
-  audio.addEventListener('loadedmetadata', function () { total.innerHTML = format(audio.duration); });
+  audio.addEventListener('loadedmetadata', function () { total.innerHTML = format(FIN); });
   audio.addEventListener('timeupdate', function () {
+    verifier();
     ecoule.innerHTML = format(audio.currentTime);
+    tete.style.left = Math.min(audio.currentTime / FIN * 100, 100) + '%';
     if (!glisse && audio.duration) {
-      position.value = Math.round(audio.currentTime / audio.duration * 1000);
+      position.value = Math.round(Math.min(audio.currentTime / FIN, 1) * 1000);
     }
   });
 
@@ -144,16 +235,17 @@
   position.addEventListener('mousedown', function () { glisse = true; });
   position.addEventListener('input', function () {
     glisse = true;
-    if (audio.duration) { ecoule.innerHTML = format(position.value / 1000 * audio.duration); }
+    if (audio.duration) { ecoule.innerHTML = format(position.value / 1000 * FIN); }
   });
   position.addEventListener('change', function () {
-    if (audio.duration) { audio.currentTime = position.value / 1000 * audio.duration; }
+    if (audio.duration) { audio.currentTime = position.value / 1000 * FIN; }
     glisse = false;
   });
 
   audio.addEventListener('ended', function () {
-    if (enboucle.checked) {
-      audio.currentTime = 0;
+    var p = premiereChoisie();
+    if (p >= 0) {
+      allerA(SECTIONS[p].debut);
       audio.play();
     }
   });
